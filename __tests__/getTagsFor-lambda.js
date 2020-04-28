@@ -4,7 +4,7 @@ import getTags from '../getTagsFor'
 // example data from https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Lambda.html#getFunctionConfiguration-property
 const lambdaarn = "arn:aws:lambda:us-west-2:123456789012:function:myFunction"
 const masterarn = `${lambdaarn}LE:2`
-const edgearn = `${masterarn.replace('us-west-1', 'us-east-1')}:2`
+const edgearn = `${masterarn.replace('us-west-2', 'us-east-1')}`
 const lambdadb = {}
 function resetdb() {
   lambdadb[lambdaarn] = {
@@ -80,13 +80,17 @@ function resetdb() {
   }
 }
 
+const lambdaApiCall = jest.fn((options, api, resource, response) => response)
+
 const mockLambda = jest.fn(options => ({
-  getFunctionConfiguration: ({FunctionName}) => ({
-    promise: () => Promise.resolve(lambdadb[FunctionName].config)
-  }),
-  listTags: ({Resource}) => ({
-    promise: () => Promise.resolve(lambdadb[Resource].tags)
-  })
+  getFunctionConfiguration: ({FunctionName}) =>
+    lambdaApiCall(options, 'getFunctionConfiguration', FunctionName, {
+      promise: () => Promise.resolve(lambdadb[FunctionName].config)
+    }),
+  listTags: ({Resource}) =>
+    lambdaApiCall(options, 'listTags', Resource, {
+      promise: () => Promise.resolve(lambdadb[Resource].tags)
+    })
 }))
 
 jest.mock(
@@ -95,7 +99,9 @@ jest.mock(
   {virtual: true}
 )
 
-beforeEach(() => {
+afterEach(() => {
+  lambdaApiCall.mock.calls.forEach(c => !c[2].startsWith('arn') ||
+    expect(c[2].split(':')[3]).toEqual(c[0].region))
   jest.clearAllMocks()
   resetdb()
 })
