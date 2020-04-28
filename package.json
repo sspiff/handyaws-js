@@ -2,7 +2,7 @@
   "name": "@sspiff/handyaws",
   "author": "sspiff",
   "license": "ISC",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Handy bits of javascript for AWS",
   "main": "index.js",
   "files": [
